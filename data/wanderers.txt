@@ -436,6 +436,35 @@ outfit "Sunbeam"
 		"heat damage" 12.1
 	description "The Wanderers do not devote much time to developing weapon technology, preferring to focus their attention on more constructive endeavors. However, the few weapons they have created are efficient and deadly."
 
+outfit "Sunbeam Turret" 
+218 	category "Turrets" 
+219 	cost 1800000 
+220 	thumbnail "outfit/unknown" 
+221 	"mass" 70 
+222 	"outfit space" -70 
+223 	"weapon capacity" -70 
+224 	"turret mounts" -1 
+225 	"required crew" 1 
+226 	weapon 
+227 		sprite "projectile/sunbeam" 
+228 			"frame rate" 1.3
+			"random start frame"
+229 		sound "sunbeam" 
+230 		"hit effect" "sunbeam impact" 
+231 		"inaccuracy" .2 
+232 		"velocity" 550 
+233 		"lifetime" 1 
+234 		"reload" 1 
+235 		"firing energy" 8.6 
+236 		"firing heat" 12.4 
+237 		"shield damage" 14.4 
+238 		"hull damage" 9
+		"heat damage" 24.2
+239 	description "This recently developed Wanderer turret places two of their Sunbeam weapons on a rotating turret. It is huge, but the firepower is worth it"
+240 
+ 
+
+
 outfit "Thunderhead Missile"
 	category "Ammunition"
 	cost 1800
@@ -785,6 +814,7 @@ outfitter "Wanderer Advanced"
 	"Large Hyperspace Fuel Generator"
 	"Sleeping Gas"
 	"Wanderer Anti-Missile"
+	"Sunbeam Turret"
 
 
 phrase "wanderer untranslated"
