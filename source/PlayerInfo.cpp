@@ -194,8 +194,16 @@ void PlayerInfo::Load(const string &path)
 	
 	// If a system was not specified in the player data, but the flagship is in
 	// a particular system, set the system to that.
-	if(!system && !ships.empty())
-		system = ships.front()->GetSystem();
+	if(!planet && !ships.empty())
+	{
+		for(shared_ptr<Ship> &ship : ships)
+			if(ship->GetPlanet() && !ship->IsDisabled() && !ship->IsParked() && !ship->CanBeCarried())
+			{
+				planet = ship->GetPlanet();
+				system = ship->GetSystem();
+				break;
+			}
+	}
 	
 	// For any ship that did not store what system it is in or what planet it is
 	// on, place it with the player. (In practice, every ship ought to have
@@ -555,7 +563,7 @@ const shared_ptr<Ship> &PlayerInfo::FlagshipPtr()
 	if(!flagship)
 	{
 		for(const shared_ptr<Ship> &it : ships)
-			if(!it->IsParked() && it->GetSystem() == system && !it->CanBeCarried())
+			if(!it->IsParked() && it->GetSystem() == system && !it->CanBeCarried() && !it->IsDisabled())
 				return it;
 	}
 	
@@ -763,8 +771,11 @@ void PlayerInfo::Land(UI *ui)
 	auto mit = missions.begin();
 	while(mit != missions.end())
 	{
-		const Mission &mission = *mit;
+		Mission &mission = *mit;
 		++mit;
+		
+		// If this is a stopover for the mission, perform the stopover action.
+		mission.Do(Mission::STOPOVER, *this, ui);
 		
 		if(mission.HasFailed(*this))
 			RemoveMission(Mission::FAIL, mission, ui);
@@ -1097,14 +1108,14 @@ const list<Mission> &PlayerInfo::AvailableJobs() const
 
 
 // Accept the given job.
-void PlayerInfo::AcceptJob(const Mission &mission)
+void PlayerInfo::AcceptJob(const Mission &mission, UI *ui)
 {
 	for(auto it = availableJobs.begin(); it != availableJobs.end(); ++it)
 		if(&*it == &mission)
 		{
 			cargo.AddMissionCargo(&mission);
 			it->Do(Mission::OFFER, *this);
-			it->Do(Mission::ACCEPT, *this);
+			it->Do(Mission::ACCEPT, *this, ui);
 			auto spliceIt = it->IsUnique() ? missions.begin() : missions.end();
 			missions.splice(spliceIt, availableJobs, it);
 			break;
@@ -1252,7 +1263,7 @@ void PlayerInfo::RemoveMission(Mission::Trigger trigger, const Mission &mission,
 			// mission's "on fail" fails the mission itself.
 			doneMissions.splice(doneMissions.end(), missions, it);
 			
-			mission.Do(trigger, *this, ui);
+			it->Do(trigger, *this, ui);
 			cargo.RemoveMissionCargo(&mission);
 			for(shared_ptr<Ship> &ship : ships)
 				ship->Cargo().RemoveMissionCargo(&mission);
@@ -1479,14 +1490,21 @@ map<const Outfit *, int> &PlayerInfo::SoldOutfits()
 // Update the conditions that reflect the current status of the player.
 void PlayerInfo::UpdateAutoConditions()
 {
-	// Set up the "conditions" for the current status of the player.
+	// Set a condition for the player's net worth. Limit it to the range of a 32-bit int.
+	static const int64_t limit = 2000000000;
+	conditions["net worth"] = min(limit, max(-limit, accounts.NetWorth()));
+	// Set the player's reputation with each government. This must also be set
+	// by Mission whenever an action is performed, in case it is modified.
 	for(const auto &it : GameData::Governments())
 	{
 		int rep = it.second.Reputation();
 		conditions["reputation: " + it.first] = rep;
-		if(&it.second == system->GetGovernment())
-			conditions["reputation"] = rep;
 	}
+	// Clear any existing ships: conditions. (Note: '!' = ' ' + 1.)
+	auto first = conditions.lower_bound("ships: ");
+	auto last = conditions.lower_bound("ships:!");
+	if(first != last)
+		conditions.erase(first, last);
 	// Store special conditions for cargo and passenger space.
 	conditions["cargo space"] = 0;
 	conditions["passenger space"] = 0;
@@ -1495,6 +1513,7 @@ void PlayerInfo::UpdateAutoConditions()
 		{
 			conditions["cargo space"] += ship->Attributes().Get("cargo space");
 			conditions["passenger space"] += ship->Attributes().Get("bunks") - ship->RequiredCrew();
+			++conditions["ships: " + ship->Attributes().Category()];
 		}
 }
 
@@ -1512,7 +1531,7 @@ void PlayerInfo::CreateMissions()
 	bool hasPriorityMissions = false;
 	for(const auto &it : GameData::Missions())
 	{
-		if(it.second.IsAtLocation(Mission::BOARDING))
+		if(it.second.IsAtLocation(Mission::BOARDING) || it.second.IsAtLocation(Mission::ASSISTING))
 			continue;
 		if(skipJobs && it.second.IsAtLocation(Mission::JOB))
 			continue;
@@ -1672,9 +1691,11 @@ void PlayerInfo::Save(const string &path) const
 	
 	// Save a list of systems the player has visited.
 	for(const System *system : visitedSystems)
-		out.Write("visited", system->Name());
+		if(!system->Name().empty())
+			out.Write("visited", system->Name());
 	
 	// Save a list of planets the player has visited.
 	for(const Planet *planet : visitedPlanets)
-		out.Write("visited planet", planet->TrueName());
+		if(!planet->TrueName().empty())
+			out.Write("visited planet", planet->TrueName());
 }

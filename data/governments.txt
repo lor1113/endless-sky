@@ -31,10 +31,10 @@ government "Neutral"
 	"player reputation" 1
 	"attitude toward"
 		"Pirate" -.2
-		"Korath" -.2
 	"bribe" .05
 	"friendly hail" "friendly civilian"
 	"hostile hail" "hostile civilian"
+	raid "pirate raid"
 
 government "Republic"
 	swizzle 0
@@ -45,9 +45,9 @@ government "Republic"
 		"Merchant" .25
 		"Militia" .1
 		"Pirate" -.3
-		"Korath" -.3
 	"friendly hail" "friendly navy"
 	"hostile hail" "hostile navy"
+	raid "pirate raid"
 
 government "Free Worlds"
 	swizzle 2
@@ -58,9 +58,9 @@ government "Free Worlds"
 		"Merchant" .3
 		"Militia" .3
 		"Pirate" -.4
-		"Korath" -.2
 	"bribe" .1
 	"friendly hail" "friendly free worlds"
+	raid "pirate raid"
 
 government "Militia"
 	swizzle 2
@@ -70,7 +70,6 @@ government "Militia"
 	"attitude toward"
 		"Merchant" .3
 		"Pirate" -.4
-		"Korath" -.2
 	"bribe" .1
 	"friendly hail" "friendly free worlds"
 
@@ -85,6 +84,8 @@ government "Syndicate"
 		"Korath" -.5
 	"bribe" .08
 	"friendly hail" "friendly syndicate"
+	"hostile hail" "hostile syndicate"
+	raid "Small Core Pirates"
 
 government "Syndicate (Extremist)"
 	swizzle 1
@@ -96,6 +97,7 @@ government "Syndicate (Extremist)"
 		"Republic" -.1
 		"Free Worlds" -.1
 	"bribe" .08
+	"hostile hail" "hostile syndicate"
 
 government "Pirate"
 	swizzle 6
@@ -110,6 +112,7 @@ government "Pirate"
 	"bribe" .05
 	"fine" 0
 	"hostile hail" "hostile pirate"
+	raid "Large Southern Pirates"
 
 government "Bounty"
 	swizzle 6
@@ -117,17 +120,25 @@ government "Bounty"
 	"fine" 0
 	"hostile hail" "hostile pirate"
 
+government "Bounty Hunter"
+	swizzle 6
+	color .78 0 0
+
+	"player reputation" -1000
+	"bribe" .2
+	"fine" 0
+	"hostile hail" "hostile bounty hunter"
+
 government "Independent"
 	swizzle 6
 	color .78 .36 .36
 	
 	"player reputation" 10
-	"attitude toward"
-		"Korath" -.1
 	"bribe" .05
 	"fine" 0
 	"friendly hail" "friendly civilian"
 	"hostile hail" "hostile civilian"
+	raid "Large Southern Pirates"
 
 government "Test Dummy"
 	swizzle 3
@@ -153,7 +164,6 @@ government "Navy (Oathkeeper)"
 		"Merchant" .25
 		"Militia" .1
 		"Pirate" -.3
-		"Korath" -.3
 	"friendly hail" "friendly navy"
 	"hostile hail" "hostile navy"
 

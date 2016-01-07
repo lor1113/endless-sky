@@ -29,6 +29,7 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 using namespace std;
 
@@ -176,6 +177,8 @@ void Ship::Load(const DataNode &node)
 			description += child.Token(1);
 			description += '\n';
 		}
+		else if(child.Token(0) != "actions")
+			child.PrintTrace("Skipping unrecognized attribute:");
 	}
 }
 
@@ -265,6 +268,11 @@ void Ship::FinishLoading()
 	attributes = baseAttributes;
 	for(const auto &it : outfits)
 	{
+		if(it.first->Name().empty())
+		{
+			cerr << "Unrecognized outfit in " << modelName << " \"" << name << "\"" << endl;
+			continue;
+		}
 		attributes.Add(*it.first, it.second);
 		if(it.first->IsWeapon())
 		{
@@ -659,15 +667,19 @@ bool Ship::Move(list<Effect> &effects)
 		
 		// Hull repair.
 		double oldHull = hull;
-		hull = min(hull + attributes.Get("hull repair rate"), maxHull);
-		static const double HULL_EXCHANGE_RATE = 1.;
+		double hullGeneration = attributes.Get("hull repair rate");
+		hull = min(hull + hullGeneration, maxHull);
+		static const double HULL_EXCHANGE_RATE = 1. +
+			(hullGeneration ? attributes.Get("hull energy") / hullGeneration : 0.);
 		energy -= HULL_EXCHANGE_RATE * (hull - oldHull);
 		
 		// Recharge shields, but only up to the max. If there is extra shield
 		// energy, use it to recharge fighters and drones.
-		shields += attributes.Get("shield generation");
-		static const double SHIELD_EXCHANGE_RATE = 1.;
-		energy -= SHIELD_EXCHANGE_RATE * attributes.Get("shield generation");
+		double shieldGeneration = attributes.Get("shield generation");
+		shields += shieldGeneration;
+		double SHIELD_EXCHANGE_RATE = 1. +
+			(shieldGeneration ? attributes.Get("shield energy") / shieldGeneration : 0.);
+		energy -= SHIELD_EXCHANGE_RATE * shieldGeneration;
 		double excessShields = max(0., shields - maxShields);
 		shields -= excessShields;
 		
@@ -1631,7 +1643,10 @@ double Ship::Fuel() const
 
 int Ship::JumpsRemaining() const
 {
-	return fuel / JumpFuel();
+	// Make sure this ship has some sort of hyperdrive, and if so return how
+	// many jumps it can make.
+	double jumpFuel = JumpFuel();
+	return jumpFuel ? fuel / jumpFuel : 0.;
 }
 
 
@@ -1641,7 +1656,9 @@ double Ship::JumpFuel() const
 	int type = HyperspaceType();
 	if(type)
 		return type;
-	return attributes.Get("jump drive") ? 200. : attributes.Get("scram drive") ? 150. : 100.;
+	return attributes.Get("jump drive") ? 200. :
+		attributes.Get("scram drive") ? 150. : 
+		attributes.Get("hyperdrive") ? 100. : 0.;
 }
 
 
@@ -1756,7 +1773,7 @@ int Ship::TakeDamage(const Projectile &projectile, bool isBlast)
 	// ship that hit it, it is now "provoked" against that government.
 	if(!isBlast && projectile.GetGovernment() && !projectile.GetGovernment()->IsEnemy(government)
 			&& (Shields() < .9 || Hull() < .9 || !personality.IsForbearing())
-			&& !personality.IsPacifist())
+			&& !personality.IsPacifist() && (shieldDamage > 0. || hullDamage > 0.))
 		type |= ShipEvent::PROVOKE;
 	
 	return type;
